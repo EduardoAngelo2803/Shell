@@ -6,8 +6,11 @@
 #include <sys/wait.h>
 #define MAX_ARGS 80
 #define BUFFER 1024
+#define READ_END
+#define WRITE_END
 // Global variable for store the arguments
 char *argv[MAX_ARGS / 2 + 1];
+char *auxargs[MAX_ARGS / 2 + 1];
 // Global variable to store user command
 char input_user[BUFFER];
 char guideInput[BUFFER];
@@ -15,11 +18,11 @@ int statusFlag = 1;
 // Global variable for count numbers of arguments
 int argc = 0;
 int count = 0;
-char i;
+int i;
 
 int verifyExit() {
 
-    if(strcmp(guideInput, "exit") == 0) {
+    if(strcmp("exit", guideInput) == 0) {
 
         return 0;
 
@@ -42,8 +45,8 @@ void get_input()
         {
             printf("Ending our Shell application, GoodBye!\n");
             statusFlag = verifyExit();
-            exit(0);
-                }
+
+        }
         // remove trailing newline
         if (input_user[strlen(input_user) - 1] == '\n')
         {
@@ -57,25 +60,20 @@ void separatorInput()
     // split string into argv
     char *separatorStr;
     i = 0;
-    separatorStr = strtok(input_user, "; ");
+    separatorStr = strtok(input_user, ";");
+
     while (separatorStr != NULL)
     {
-        // printf("%s\n", ptr);
         argv[i] = separatorStr;
+        auxargs[i] = separatorStr;      
         i++;
-        separatorStr = strtok(NULL, "; ");
+        separatorStr = strtok(NULL, ";");
     }
 
-    /* check for "; "
-    if (!strcmp("; ", argv[i - 1]))
-    {
-        argv[i - 1] = NULL;
-        argv[i] = "; ";
-    }*/
-    
     //Set the last position array to NULL, for the execvp syntax
     argv[i] = NULL;
-    
+    auxargs[i] = NULL;
+
     //Set the first position to array to NULL
     guideInput[0] = '\0';
     // printf("%d\n", i);
@@ -113,38 +111,45 @@ void runShell()
 }
 
 void runInSequential()
-{
-    pid_t pid, wpid;
-    int status;
 
-    runShell();
+{
+    
+    pid_t pid[i];
+    int status;
 
     while(statusFlag != 0) {
 
-        if(statusFlag == 0) {
-
+        runShell();
+       
+        if (statusFlag == 0)
+        {
             break;
         }
 
-        pid = fork();
+        for (int j = 0; j < i; j++) {
 
-        if(pid < 0) {
+            pid[j] = fork();
+   
+            if (pid[j] < 0)
+            {
+                exit(1);
+                // Child Process
+            }else if(pid[j] == 0) {
 
-            exit(1);
+                execvp(auxargs[0], auxargs);
+        
+            }else {
 
-        }else if(pid == 0) {
-
-            execvp(argv[0], argv);
-        }else {
-        do
-        {
-            wpid = waitpid(pid, &status, WUNTRACED);
-
-        } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+                if (i >= 2)
+                {
+                    auxargs[0] = auxargs[j + 1];
+                }
+                wait(NULL);
+            }                
         }
-        break;
-    }
-}
+    } 
+}      
+
 void runInParallel()
 {
 
@@ -189,7 +194,9 @@ void runInParallel()
 
 void execPipe() {
 
-    int dup2[2];
+    char write_msg[BUFFER];
+    char read_msg[BUFFER];
+    int fd[2];
     pid_t pip1, pip2;
 
     
@@ -201,11 +208,11 @@ int main()
     char input_initial[30];
     int flagChoose;
 
-    
+    flagChoose = chooseMode(input_initial);
+
     while (should_run)
     {
-        flagChoose = chooseMode(input_initial);
-
+        
         switch(flagChoose) {
 
             case 1:
@@ -226,8 +233,8 @@ int main()
             default:
 
                 printf("Opção inválida, tente novamente!\n");
-                
-            }
+                flagChoose = chooseMode(input_initial);
+        }
     }
 
     return 0;
