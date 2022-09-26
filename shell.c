@@ -14,19 +14,19 @@ char *auxargs[MAX_ARGS / 2 + 1];
 // Global variable to store user command
 char input_user[BUFFER];
 char guideInput[BUFFER];
-int statusFlag = 1;
+char *history[BUFFER];
+int countHistory = 0;
+int flagH = 0;
 // Global variable for count numbers of arguments
 int argc = 0;
+int statusexit = 0;
 int count = 0;
 int i;
 
-int verifyExit() {
-
-    if(strcmp("exit", guideInput) == 0) {
-
-        return 0;
-
-    }
+void removeSpaces(char **str)
+{
+    while (**str == ' ')
+        (*str)++;
 }
 
 void get_input()
@@ -34,54 +34,69 @@ void get_input()
     // get command from user
     printf("leam est seq> \n");
     fgets(input_user, BUFFER, stdin);
+    
+    if(input_user == 'h') {
+
+        flagH = 1;
+    }
+ 
+    input_user[strlen(input_user) - 1] = '\0';
     strcpy(guideInput, input_user);
 
-    if (guideInput[strlen(guideInput) - 1] == '\n')
+    /*if (guideInput[strlen(guideInput) - 1] == '\n')
     {
 
         guideInput[strlen(guideInput) - 1] = '\0';
-    }
-        if (strcmp(guideInput, "exit") == 0)
+    }*/
+        if (strcmp(input_user, "exit") == 0)
         {
             printf("Ending our Shell application, GoodBye!\n");
-            statusFlag = verifyExit();
-
+            statusexit = 1;
         }
-        // remove trailing newline
-        if (input_user[strlen(input_user) - 1] == '\n')
-        {
-
-            input_user[strlen(input_user) - 1] = '\0';
-        } // printf("%s\n", cmd);
+        // remove trailing newline       
     }
 
 void separatorInput()
 {
     // split string into argv
-    char *separatorStr;
+    char *delim = ";";
+    char *delim2 = " ";
+    char *separatorStr, *separatorStr2;
     i = 0;
-    separatorStr = strtok(input_user, ";");
 
+    separatorStr = strtok(input_user, ";");
+    
     while (separatorStr != NULL)
     {
         argv[i] = separatorStr;
-        auxargs[i] = separatorStr;      
-        i++;
+        removeSpaces(&argv[i]);
+        i++;      
         separatorStr = strtok(NULL, ";");
     }
+  
+    separatorStr2 = strtok(argv[count], " ");
+    while(separatorStr2 != NULL) {
+        
+        auxargs[count] = separatorStr2;
+        history[countHistory] = separatorStr2;
+        countHistory++;
+        count++;
+        separatorStr2 = strtok(NULL, " ");
+    }
+
+    auxargs[count] = NULL;
+    argv[i] = NULL;
 
     //Set the last position array to NULL, for the execvp syntax
-    argv[i] = NULL;
-    auxargs[i] = NULL;
+    /*for (int j = 0; j < i; j++) {
 
-    //Set the first position to array to NULL
-    guideInput[0] = '\0';
-    // printf("%d\n", i);
+        auxargs[count] = NULL;
+    }*/
 }
 
 int chooseMode(char input_initial[30]) {
 
-    printf("Choose mode for run Shell! style parallel or style sequential, exit for endding!\n");
+    printf("Choose mode for run Shell! style parallel or style sequential, h to view last command, and exit for endding!\n");
     fgets(input_initial, 30, stdin);
 
     if (input_initial[strlen(input_initial) - 1] == '\n')
@@ -100,106 +115,82 @@ int chooseMode(char input_initial[30]) {
     {
         printf("Ending our Shell application, GoodBye!\n");
         return 3;
-        exit(0);
+        
     }
 }
 
-void runShell()
-{
-    get_input();
-    separatorInput();
+void execVp() {
+
+    for (int j = 0; j < i; j++)
+    {
+
+        pid_t cpid[i];
+
+        cpid[j] = fork();
+
+        if (cpid[j] < 0)
+        {
+
+            printf("Fork failed!\n");
+        }
+        else if (cpid[j] == 0)
+        {
+
+            execvp(auxargs[0], auxargs);
+        }
+        else
+        {
+            printf("Command: %s\n", auxargs[0]);
+            wait(NULL);
+        }
+
+        for (int k = 0; k < i; k++)
+        {
+            auxargs[k] = NULL;
+        }
+
+        auxargs[j] = argv[j + 1];
+        auxargs[i] = NULL;
+    }
+
+    for (int m = 0; m < 5; m++)
+    {
+
+        argv[m] = NULL;
+        i = 0;
+        count = 0;
+    }
 }
+
 
 void runInSequential()
 
 {
-    
-    pid_t pid[i];
-    int status;
+    if(statusexit != 1) {
 
-    while(statusFlag != 0) {
+        while(1) {
 
-        runShell();
-       
-        if (statusFlag == 0)
-        {
-            break;
-        }
+            get_input();
 
-        for (int j = 0; j < i; j++) {
+            if(strcmp("exit", input_user) == 0) {
+                
+                break;
 
-            pid[j] = fork();
-   
-            if (pid[j] < 0)
-            {
-                exit(1);
-                // Child Process
-            }else if(pid[j] == 0) {
-
-                execvp(auxargs[0], auxargs);
-        
-            }else {
-
-                if (i >= 2)
-                {
-                    auxargs[0] = auxargs[j + 1];
-                }
-                wait(NULL);
-            }                
-        }
-    } 
-}      
-
-void runInParallel()
-{
-
-    pid_t pid_Ch[MAX_ARGS / 2 + 1];
-    pid_t pid;
-    int count = 0;
-
-    while (1)
-    {
-        runShell();
-
-        
-        pid = fork();
-        pid_Ch[count] = pid;
-
-        while (argc >= 0)
-        {
-
-            if (pid < 0)
-            {
-
-                printf("Fork failed!\n");
-                exit(EXIT_FAILURE);
-                exit(1);
-            }
-            else if (pid == 0)
-            {
-
-                execvp(argv[0], argv);
-            }
-            else
-            {
-
-                printf("Waiting Child terminate de process first!\n");
-                wait(NULL);
             }
 
-            argc--;
+            separatorInput();
+            execVp();
         }
     }
 }
 
-void execPipe() {
+void execPipe()
+{
 
     char write_msg[BUFFER];
     char read_msg[BUFFER];
     int fd[2];
     pid_t pip1, pip2;
-
-    
 }
 
 int main()
@@ -218,11 +209,14 @@ int main()
             case 1:
 
                 runInSequential();
+                if (statusexit == 1) {
+                    should_run = 0;
+                }
                 break;
 
             case 2:
 
-                runInParallel();
+                //runInParallel();
                 break;
 
             case 3:
