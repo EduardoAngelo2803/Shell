@@ -73,10 +73,11 @@ void separatorInput()
         i++;      
         separatorStr = strtok(NULL, ";");
     }
-  
+
     separatorStr2 = strtok(argv[count], " ");
+
     while(separatorStr2 != NULL) {
-        
+    
         auxargs[count] = separatorStr2;
         history[countHistory] = separatorStr2;
         countHistory++;
@@ -86,6 +87,8 @@ void separatorInput()
 
     auxargs[count] = NULL;
     argv[i] = NULL;
+
+    
 
     //Set the last position array to NULL, for the execvp syntax
     /*for (int j = 0; j < i; j++) {
@@ -123,7 +126,6 @@ void execVp() {
 
     for (int j = 0; j < i; j++)
     {
-
         pid_t cpid[i];
 
         cpid[j] = fork();
@@ -135,7 +137,6 @@ void execVp() {
         }
         else if (cpid[j] == 0)
         {
-
             execvp(auxargs[0], auxargs);
         }
         else
@@ -148,9 +149,14 @@ void execVp() {
         {
             auxargs[k] = NULL;
         }
-
-        auxargs[j] = argv[j + 1];
+        
+        //Decision for no segmantation fault
+        if(j < (i-1)) {
+        
+        auxargs[0] = argv[j + 1];
         auxargs[i] = NULL;
+
+        }
     }
 
     for (int m = 0; m < 5; m++)
@@ -161,7 +167,6 @@ void execVp() {
         count = 0;
     }
 }
-
 
 void runInSequential()
 
@@ -191,6 +196,7 @@ void execPipe()
     char read_msg[BUFFER];
     int fd[2];
     pid_t pip1, pip2;
+    
 }
 
 int main()
