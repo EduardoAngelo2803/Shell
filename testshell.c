@@ -21,7 +21,7 @@ void log_handle(int sig);// signal handler to add log statements
 
 int main () {
 
-    char *arg[MAX_SIZE_ARG] = {{"ls", "-l", NULL}, {"ps", NULL}, {"pwd", NULL}, {"echo", "Hello Shell!", NULL}, 
+    /*char *arg[MAX_SIZE_ARG] = {{"ls", "-l", NULL}, {"ps", NULL}, {"pwd", NULL}, {"echo", "Hello Shell!", NULL}, 
     {"echo", "Run BathcFile!", NULL}};
     char *aux[MAX_SIZE_ARG];
 
@@ -48,8 +48,27 @@ int main () {
             aux[j] = NULL;
             wait(NULL);
         }
+            
+        
 
         
+    }*/
+
+    char *argv[MAX_SIZE_ARG] = {{"ps", NULL}, {"ls -l", NULL}};
+    char *auxargs[MAX_SIZE_ARG];
+    char *str;
+    int i = 0;
+    auxargs[0] = argv[1];
+    printf("%s", auxargs[0]);
+    str = strtok(auxargs[0], " ");
+
+   /* while (str != NULL)
+    {
+
+        auxargs[i] = str;
+        i++;
+        str = strtok(NULL, " ");
     }
-        return 0;
+    printf("%s", auxargs[0]);*/
+    return 0;
 }

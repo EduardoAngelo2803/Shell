@@ -16,12 +16,24 @@ char input_user[BUFFER];
 char guideInput[BUFFER];
 char *history[BUFFER];
 int countHistory = 0;
+int flagChoose;
 int flagH = 0;
 // Global variable for count numbers of arguments
 int argc = 0;
 int statusexit = 0;
 int count = 0;
 int i;
+
+void checkChar(str) {
+
+    int exclamationCheck;
+
+    if (strchr(str, '!') != NULL)
+    {
+        exclamationCheck = 1;
+    }
+
+}
 
 void removeSpaces(char **str)
 {
@@ -32,17 +44,27 @@ void removeSpaces(char **str)
 void get_input()
 {
     // get command from user
-    printf("leam est seq> \n");
-    fgets(input_user, BUFFER, stdin);
-    
-    if(input_user == 'h') {
+    if(flagChoose == 1) {
 
+        printf("leam seq> \n");
+
+    }else if(flagChoose == 2) {
+
+        printf("leam par> \n");
+    }
+
+    fgets(input_user, BUFFER, stdin);
+
+    input_user[strlen(input_user) - 1] = '\0';
+    
+    if(strcmp(input_user, "h") != 0) {
+
+        strcpy(guideInput, input_user);
+    }
+    if (strcmp(input_user, "h") == 0)
+    {
         flagH = 1;
     }
- 
-    input_user[strlen(input_user) - 1] = '\0';
-    strcpy(guideInput, input_user);
-
     /*if (guideInput[strlen(guideInput) - 1] == '\n')
     {
 
@@ -56,14 +78,14 @@ void get_input()
         // remove trailing newline       
     }
 
-void separatorInput()
+void separatorInput(char input_user[BUFFER])
 {
     // split string into argv
     char *delim = ";";
     char *delim2 = " ";
     char *separatorStr, *separatorStr2;
     i = 0;
-
+    //Parse string in to numbers of arguments
     separatorStr = strtok(input_user, ";");
     
     while (separatorStr != NULL)
@@ -73,7 +95,7 @@ void separatorInput()
         i++;      
         separatorStr = strtok(NULL, ";");
     }
-
+    
     separatorStr2 = strtok(argv[count], " ");
 
     while(separatorStr2 != NULL) {
@@ -87,8 +109,6 @@ void separatorInput()
 
     auxargs[count] = NULL;
     argv[i] = NULL;
-
-    
 
     //Set the last position array to NULL, for the execvp syntax
     /*for (int j = 0; j < i; j++) {
@@ -122,8 +142,8 @@ int chooseMode(char input_initial[30]) {
     }
 }
 
-void execVp() {
-
+void execPid() {
+ 
     for (int j = 0; j < i; j++)
     {
         pid_t cpid[i];
@@ -145,6 +165,7 @@ void execVp() {
             wait(NULL);
         }
 
+        //Clear array
         for (int k = 0; k < i; k++)
         {
             auxargs[k] = NULL;
@@ -152,24 +173,16 @@ void execVp() {
         
         //Decision for no segmantation fault
         if(j < (i-1)) {
-        
-        auxargs[0] = argv[j + 1];
-        auxargs[i] = NULL;
+            
+            //Pull the next command of array Argv
+            auxargs[0] = argv[j + 1];
+            auxargs[i] = NULL;
 
         }
-    }
-
-    for (int m = 0; m < 5; m++)
-    {
-
-        argv[m] = NULL;
-        i = 0;
-        count = 0;
-    }
+    }  
 }
 
 void runInSequential()
-
 {
     if(statusexit != 1) {
 
@@ -177,14 +190,96 @@ void runInSequential()
 
             get_input();
 
+            if (flagH == 1) {
+
+                separatorInput(guideInput);
+                execPid();
+                flagH = 0;
+
+            }
+
+            else if (flagH != 1)
+            {
+                memset(argv, 0, MAX_ARGS / 2 + 1);
+                i = 0;
+                count = 0;
+            }
+
             if(strcmp("exit", input_user) == 0) {
                 
                 break;
 
             }
 
-            separatorInput();
-            execVp();
+            separatorInput(input_user);
+            execPid();
+        }
+    }
+}
+
+void runInParallel() {
+
+    pid_t cpid[i];
+    int countI;
+    countI = i;
+    int j = 0;
+
+    if (statusexit != 1) {
+
+        while (1)
+        {
+
+            get_input();
+
+            if (strcmp("exit", input_user) == 0)
+            {
+                break;
+            }
+
+            separatorInput(input_user);
+
+            for (j = 0; j < i; j++)
+            {             
+                cpid[j] = fork();
+
+                if (cpid[j] < 0)
+                {
+
+                    printf("Fork failed!\n");
+                }
+                else if (cpid[j] == 0)
+                {
+                    execvp(auxargs[0], auxargs);
+                }
+
+                for (int k = 0; k < i; k++)
+                {
+                    auxargs[k] = NULL;
+                }
+                // Decision for no segmantation fault
+                if (j < (i - 1))
+                {
+
+                    auxargs[0] = argv[j + 1];
+                    auxargs[i] = NULL;
+                }
+            }
+
+            while(countI > 0) {
+
+                wait(NULL);
+                countI--;
+            }
+
+            for (int m = 0; m < i; m++)
+            {
+
+                argv[m] = NULL;
+                i = 0;
+                count = 0;
+            }
+
+            
         }
     }
 }
@@ -203,8 +298,7 @@ int main()
 {
     int should_run = 1;
     char input_initial[30];
-    int flagChoose;
-
+    
     flagChoose = chooseMode(input_initial);
 
     while (should_run)
@@ -222,7 +316,7 @@ int main()
 
             case 2:
 
-                //runInParallel();
+                runInParallel();
                 break;
 
             case 3:
