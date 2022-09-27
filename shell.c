@@ -10,6 +10,7 @@
 #define WRITE_END
 // Global variable for store the arguments
 char *argv[MAX_ARGS / 2 + 1];
+int countI = 0;
 char *auxargs[MAX_ARGS / 2 + 1];
 // Global variable to store user command
 char input_user[BUFFER];
@@ -26,13 +27,20 @@ int i;
 
 void checkChar(str) {
 
-    int exclamationCheck;
+    int exclamationCheck, ptvgla, file;
 
-    if (strchr(str, '!') != NULL)
+    if (strchr(str, '|') != NULL)
     {
         exclamationCheck = 1;
-    }
 
+    }else if (strchr(str, ";") != NULL) {
+
+        ptvgla = 1;
+
+    }else if (strchr(str, ">") != NULL) {
+
+        file = 1;
+    }
 }
 
 void removeSpaces(char **str)
@@ -46,17 +54,18 @@ void get_input()
     // get command from user
     if(flagChoose == 1) {
 
-        printf("leam seq> \n");
+        printf("leam seq> ");
 
     }else if(flagChoose == 2) {
 
-        printf("leam par> \n");
+        printf("leam par> ");
     }
 
     fgets(input_user, BUFFER, stdin);
 
     input_user[strlen(input_user) - 1] = '\0';
-    
+    guideInput[strlen(guideInput) - 1] = '\0';
+
     if(strcmp(input_user, "h") != 0) {
 
         strcpy(guideInput, input_user);
@@ -65,18 +74,30 @@ void get_input()
     {
         flagH = 1;
     }
-    /*if (guideInput[strlen(guideInput) - 1] == '\n')
+    
+    if (strcmp(input_user, "exit") == 0)
     {
-
-        guideInput[strlen(guideInput) - 1] = '\0';
-    }*/
-        if (strcmp(input_user, "exit") == 0)
-        {
-            printf("Ending our Shell application, GoodBye!\n");
-            statusexit = 1;
-        }
+        printf("Ending our Shell application, GoodBye!\n");
+        statusexit = 1;
+    }
         // remove trailing newline       
     }
+
+void separatorArgv (char *argv[BUFFER]) {
+
+    char *ptr;
+    
+    ptr = strtok(argv[countI], " ");
+
+    while(ptr != NULL) {
+
+        auxargs[count] = ptr;
+        count++;
+        ptr = strtok(NULL, " ");
+
+    }
+    auxargs[count] = NULL;
+}
 
 void separatorInput(char input_user[BUFFER])
 {
@@ -95,26 +116,7 @@ void separatorInput(char input_user[BUFFER])
         i++;      
         separatorStr = strtok(NULL, ";");
     }
-    
-    separatorStr2 = strtok(argv[count], " ");
-
-    while(separatorStr2 != NULL) {
-    
-        auxargs[count] = separatorStr2;
-        history[countHistory] = separatorStr2;
-        countHistory++;
-        count++;
-        separatorStr2 = strtok(NULL, " ");
-    }
-
-    auxargs[count] = NULL;
-    argv[i] = NULL;
-
-    //Set the last position array to NULL, for the execvp syntax
-    /*for (int j = 0; j < i; j++) {
-
-        auxargs[count] = NULL;
-    }*/
+  
 }
 
 int chooseMode(char input_initial[30]) {
@@ -143,16 +145,29 @@ int chooseMode(char input_initial[30]) {
 }
 
 void execPid() {
- 
+
+    if(flagH == 0) {
+
+        separatorInput(input_user);
+        
+    }
+
+    if(flagH == 1) {
+
+        separatorInput(guideInput);
+        flagH = 0;
+    }
+
     for (int j = 0; j < i; j++)
     {
         pid_t cpid[i];
 
         cpid[j] = fork();
 
+        separatorArgv(&argv);
+
         if (cpid[j] < 0)
         {
-
             printf("Fork failed!\n");
         }
         else if (cpid[j] == 0)
@@ -163,22 +178,15 @@ void execPid() {
         {
             printf("Command: %s\n", auxargs[0]);
             wait(NULL);
-        }
-
+        }     
         //Clear array
         for (int k = 0; k < i; k++)
         {
             auxargs[k] = NULL;
-        }
-        
-        //Decision for no segmantation fault
-        if(j < (i-1)) {
             
-            //Pull the next command of array Argv
-            auxargs[0] = argv[j + 1];
-            auxargs[i] = NULL;
-
         }
+        countI++;
+        count = 0;   
     }  
 }
 
@@ -192,27 +200,26 @@ void runInSequential()
 
             if (flagH == 1) {
 
-                separatorInput(guideInput);
+                memset(argv, 0, MAX_ARGS / 2 + 1);
+                countI = 0;
                 execPid();
-                flagH = 0;
-
+    
             }
 
             else if (flagH != 1)
             {
                 memset(argv, 0, MAX_ARGS / 2 + 1);
-                i = 0;
-                count = 0;
+                countI = 0;
+                // i = 0;
+                // count = 0;
             }
 
             if(strcmp("exit", input_user) == 0) {
                 
                 break;
 
-            }
-
-            separatorInput(input_user);
-            execPid();
+            }         
+            execPid();         
         }
     }
 }
@@ -220,8 +227,6 @@ void runInSequential()
 void runInParallel() {
 
     pid_t cpid[i];
-    int countI;
-    countI = i;
     int j = 0;
 
     if (statusexit != 1) {
@@ -230,21 +235,21 @@ void runInParallel() {
         {
 
             get_input();
+            separatorInput(input_user);
 
             if (strcmp("exit", input_user) == 0)
             {
                 break;
             }
-
-            separatorInput(input_user);
-
+           
             for (j = 0; j < i; j++)
             {             
                 cpid[j] = fork();
 
+                separatorArgv(&argv);
+
                 if (cpid[j] < 0)
                 {
-
                     printf("Fork failed!\n");
                 }
                 else if (cpid[j] == 0)
@@ -256,13 +261,9 @@ void runInParallel() {
                 {
                     auxargs[k] = NULL;
                 }
-                // Decision for no segmantation fault
-                if (j < (i - 1))
-                {
-
-                    auxargs[0] = argv[j + 1];
-                    auxargs[i] = NULL;
-                }
+                countI++;
+                count = 0;
+                // Decision for no segmantation fault               
             }
 
             while(countI > 0) {
@@ -273,10 +274,7 @@ void runInParallel() {
 
             for (int m = 0; m < i; m++)
             {
-
                 argv[m] = NULL;
-                i = 0;
-                count = 0;
             }
 
             

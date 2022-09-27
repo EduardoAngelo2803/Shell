@@ -6,69 +6,92 @@
 #include <unistd.h>
 #include <signal.h>
 
-#define MAX_SIZE_CMD 256
-#define MAX_SIZE_ARG 16
+#define MAX_ARGS 80
+#define BUFFER 1024
 
-char cmd[MAX_SIZE_CMD];   // string holder for the command
-char *args[10]; // an array for command and arguments
-              // global variable for the child process ID
-int i = 10;                   // global for loop counter
+char argv[MAX_ARGS][BUFFER] = {"ls -l", "ps", "pwd", "echo 123", "echo hello!"};
+char cpy[MAX_ARGS][BUFFER] = {"ls -l", "ps", "pwd", "echo 123", "echo hello!"};
+// an array for command and arguments
+char *auxargs[MAX_ARGS / 2 + 1];
 
-/*void get_cmd();           // get command string from the user
-void convert_cmd();       // convert the command string to the required format by execvp()
-void c_shell();       */    // to start the shell
-void log_handle(int sig);// signal handler to add log statements
+int argc = 0;
+int statusexit = 0;
+int count = 0;
+int i;
+int countI = 0;
 
-int main () {
+void removeSpaces(char **str)
+{
+    while (**str == ' ')
+        (*str)++;
+}
 
-    /*char *arg[MAX_SIZE_ARG] = {{"ls", "-l", NULL}, {"ps", NULL}, {"pwd", NULL}, {"echo", "Hello Shell!", NULL}, 
-    {"echo", "Run BathcFile!", NULL}};
-    char *aux[MAX_SIZE_ARG];
+void separatorArgv(char argv[MAX_ARGS][BUFFER])
+{
 
-    for (int j = 0; j < 5; j++) {
+    char *ptr;
 
-        pid_t cpid[10];
+    ptr = strtok(argv[countI], " ");
+
+    while (ptr != NULL)
+    {
+
+        auxargs[count] = ptr;
+        count++;
+        ptr = strtok(NULL, " ");
+    }
+    auxargs[count] = NULL;
+}
+
+void runShell() {
+
+    for (int j = 0; j < 5; j++)
+    {
+        pid_t cpid[5];
+
         cpid[j] = fork();
-        aux[0] = arg[j];
-        aux[1] = NULL;
+
+        separatorArgv(argv);
 
         if (cpid[j] < 0)
         {
-
             printf("Fork failed!\n");
         }
         else if (cpid[j] == 0)
         {
-
-            execvp(aux[0], aux);
-
-        }else {
-
-            printf("Command executing now..: %s\n", aux[0]);
-            aux[j] = NULL;
+            execvp(auxargs[0], auxargs);
+        }
+        else
+        {
+            printf("Command: %s\n", auxargs[0]);
             wait(NULL);
         }
-            
-        
+        // Clear array
+        for (int k = 0; k < 5; k++)
+        {
+            auxargs[k] = NULL;
+        }
+        countI++;
+        count = 0;
+    }
 
-        
-    }*/
-
-    char *argv[MAX_SIZE_ARG] = {{"ps", NULL}, {"ls -l", NULL}};
-    char *auxargs[MAX_SIZE_ARG];
-    char *str;
-    int i = 0;
-    auxargs[0] = argv[1];
-    printf("%s", auxargs[0]);
-    str = strtok(auxargs[0], " ");
-
-   /* while (str != NULL)
+    printf("Total Commands executes: %d  >>\t", countI);
+    for (int m = 0; m < countI; m++)
     {
 
-        auxargs[i] = str;
-        i++;
-        str = strtok(NULL, " ");
+        printf("%s; ", cpy[m]);
     }
-    printf("%s", auxargs[0]);*/
+
+    printf("\n\n");
+    printf("Exit sucess!\n");
+    exit(0);
+}
+
+int main () {
+
+    while(1) 
+    
+        runShell();
+
     return 0;
 }
