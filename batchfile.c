@@ -9,20 +9,29 @@
 
 int countI = 0;
 int count = 0;
+int nArguments = 0;
+int newCont = 0;
+char *argvB[BUFFER];
 char *args[BUFFER];
 char *auxargs[BUFFER];
-size_t i = 0;
+int i = 0;
+int r = 0;
+
+void removeSpaces(char **str)
+{
+    while (**str == ' ')
+        (*str)++;
+}
 
 void ExecSeq()
 {
-    pid_t cpid[i];
+    pid_t cpid[nArguments];
 
-    for (int j = 0; j < i; j++)
+    for (int j = 0; j < nArguments; j++)
     {
         
         cpid[j] = fork();
-
-        separatorArgv(&args);
+        separatorArgv();
 
         if (cpid[j] < 0)
         {
@@ -34,7 +43,7 @@ void ExecSeq()
         }
         else
         {
-            printf("Command: %s\n", args[j]);
+            printf("Command: %s\n", auxargs[0]);
             wait(NULL);
         }
         // Clear array
@@ -43,6 +52,7 @@ void ExecSeq()
             auxargs[k] = NULL;
         }
         countI++;
+        newCont++;
         count = 0;
     }
 
@@ -56,24 +66,34 @@ void ExecSeq()
     printf("Run in sequential with sucess!\n");
     countI = 0;
     count = 0;
+    
+
+    for (int j = 0; j < i; j++)
+    {
+        args[j] = NULL;
+    }
 }
 
 void ExecParal() {
 
-    pid_t cpid[i];
-   
-    for (int j = 0; j < i; j++)
-    {
-        cpid[j] = fork();
+    pid_t cpid[nArguments];
 
-        separatorArgv(&args);
+
+    for (int j = 0; j < nArguments; j++)
+    {
+        
+        separatorArgv();
+
+        cpid[j] = fork();
 
         if (cpid[j] < 0)
         {
             printf("Fork failed!\n");
         }
+
         else if (cpid[j] == 0)
         {
+
             execvp(auxargs[0], auxargs);
         }
 
@@ -82,8 +102,8 @@ void ExecParal() {
             auxargs[k] = NULL;
         }
         countI++;
+        newCont++;
         count = 0;
-        
     }
 
     while (i > 0)
@@ -92,14 +112,14 @@ void ExecParal() {
         i--;
     }
 
+    printf("\nExec in Parallel with sucess! Exiting Shell...\n");
+    exit(0);
 }
 
-void separatorArgv(char *argvv[BUFFER])
+void separatorArgv()
 {
-
     char *ptr;
-
-    ptr = strtok(argvv[countI], " ");
+    ptr = strtok(args[countI], " ");
 
     while (ptr != NULL)
     {
@@ -108,6 +128,23 @@ void separatorArgv(char *argvv[BUFFER])
         ptr = strtok(NULL, " ");
     }
     auxargs[count] = NULL;
+}
+
+void separatorInput()
+{
+    char *separatorStr;
+
+    separatorStr = strtok(argvB[r], ";");
+
+    while (separatorStr != NULL)
+    {
+        args[nArguments] = malloc(sizeof *args[nArguments] * BUFFER);
+        args[nArguments] = separatorStr;
+        removeSpaces(&args[nArguments]);
+        nArguments++;
+        separatorStr = strtok(NULL, ";");
+    }
+    args[nArguments] = NULL;
 }
 
 int main(int argc, char **argv) {
@@ -122,26 +159,25 @@ int main(int argc, char **argv) {
 
         file = fopen(argv[1], "r");
 
-
         while(!feof(file) && !ferror(file)) {
 
-            args[i] = malloc(sizeof *args[i] * BUFFER);
-            fgets(args[i], BUFFER, file);
+            argvB[i] = malloc(sizeof *argvB[i] * BUFFER);
+            fgets(argvB[i], BUFFER, file);
+            argvB[i][strlen(argvB[i]) - 1] = '\0';
+            separatorInput();
+        
             i++;
+            r++;
         }
-
-        for (int m = 0; m < i; m++) {
-
-            args[m][strlen(args[m]) - 1] = '\0';
-        }
-
+        printf("%d", nArguments);
         printf("\nExec in Seq >\n");
         ExecSeq();
 
         printf("\nExec in Parallel >\n");
-        ExecParal();
+        //ExecParal();
         
         fclose(file);
+    
     }
 
     return 0;

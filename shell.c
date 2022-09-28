@@ -118,9 +118,7 @@ void separatorArgv (char *argv[BUFFER]) {
 void separatorInput(char input_user[BUFFER])
 {
     // split string into argv
-    char *delim = ";";
-    char *delim2 = " ";
-    char *separatorStr, *separatorStr2;
+    char *separatorStr;
     i = 0;
     //Parse string in to numbers of arguments
     separatorStr = strtok(input_user, ";");
