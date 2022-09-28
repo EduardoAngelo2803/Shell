@@ -10,7 +10,6 @@
 #define WRITE_END
 // Global variable for store the arguments
 char *argv[MAX_ARGS / 2 + 1];
-int countI = 0;
 char *auxargs[MAX_ARGS / 2 + 1];
 // Global variable to store user command
 char input_user[BUFFER];
@@ -19,9 +18,12 @@ char *history[BUFFER];
 int countHistory = 0;
 int flagChoose;
 int flagH = 0;
+char input_initial[30];
 // Global variable for count numbers of arguments
 int argc = 0;
+int countGlobal = 0;
 int statusexit = 0;
+int countI = 0;
 int count = 0;
 int i;
 
@@ -64,14 +66,26 @@ void get_input()
     fgets(input_user, BUFFER, stdin);
 
     input_user[strlen(input_user) - 1] = '\0';
-    guideInput[strlen(guideInput) - 1] = '\0';
 
-    if(strcmp(input_user, "h") != 0) {
+    if(input_user == EOF) {
+
+        flagChoose = 3;
+        exit(0);
+    }
+
+    //Coloca os comandos no array auxiliar, caso não seja pressionado !!. Pois se for
+    //Ele passa direto, logo, fica salvo o ultimo input antes do '!!'.
+    if(strcmp(input_user, "!!") != 0) {
 
         strcpy(guideInput, input_user);
+       
     }
-    if (strcmp(input_user, "h") == 0)
+    if (strcmp(input_user, "!!") == 0)
     {
+        if (countGlobal == 0)
+        {
+            printf("No commands\n");
+        }
         flagH = 1;
     }
     
@@ -79,6 +93,7 @@ void get_input()
     {
         printf("Ending our Shell application, GoodBye!\n");
         statusexit = 1;
+        exit(0);
     }
         // remove trailing newline       
     }
@@ -121,9 +136,13 @@ void separatorInput(char input_user[BUFFER])
 
 int chooseMode(char input_initial[30]) {
 
-    printf("Choose mode for run Shell! style parallel or style sequential, h to view last command, and exit for endding!\n");
+    printf("Choose mode for run Shell! style parallel or style sequential, '!!' to execute last command, and exit for endding!\n");
     fgets(input_initial, 30, stdin);
 
+    if(input_initial == NULL) {
+        flagChoose = 3;
+        exit(0);
+        }
     if (input_initial[strlen(input_initial) - 1] == '\n')
     {
         input_initial[strlen(input_initial) - 1] = '\0';
@@ -141,21 +160,30 @@ int chooseMode(char input_initial[30]) {
         printf("Ending our Shell application, GoodBye!\n");
         return 3;
         
+    }else if (strcmp(input_initial, "!!") == 0) {
+
+        printf("No commands\n");
+        return 4;
     }
 }
 
 void execPid() {
 
-    if(flagH == 0) {
+    countGlobal++;
+
+    if (flagH == 0){
 
         separatorInput(input_user);
-        
-    }
 
-    if(flagH == 1) {
+    }else if(flagH == 1) {
 
         separatorInput(guideInput);
         flagH = 0;
+
+        if(i > 1) {
+
+            i = i - 1;
+        }
     }
 
     for (int j = 0; j < i; j++)
@@ -200,7 +228,11 @@ void runInSequential()
 
             if (flagH == 1) {
 
-                memset(argv, 0, MAX_ARGS / 2 + 1);
+                for (int l = 0; l < countI; l++) {
+
+                    argv[l] = NULL;
+                }
+                //memset(argv, 0, MAX_ARGS / 2 + 1);
                 countI = 0;
                 execPid();
     
@@ -208,16 +240,21 @@ void runInSequential()
 
             else if (flagH != 1)
             {
-                memset(argv, 0, MAX_ARGS / 2 + 1);
+
+                for (int l = 0; l < countI; l++)
+                {
+
+                    argv[l] = NULL;
+                }
+                //memset(argv, 0, MAX_ARGS / 2 + 1);
                 countI = 0;
                 // i = 0;
                 // count = 0;
             }
 
             if(strcmp("exit", input_user) == 0) {
-                
+                exit(0);
                 break;
-
             }         
             execPid();         
         }
@@ -233,12 +270,30 @@ void runInParallel() {
 
         while (1)
         {
-
             get_input();
-            separatorInput(input_user);
+            countGlobal++;
+
+            if (flagH == 0)
+            {
+
+                separatorInput(input_user);
+            }
+            else if (flagH == 1)
+            {
+
+                separatorInput(guideInput);
+                flagH = 0;
+
+                if (i > 1)
+                {
+
+                    //i = i - 1;
+                }
+            }
 
             if (strcmp("exit", input_user) == 0)
             {
+                exit(0);
                 break;
             }
            
@@ -295,13 +350,17 @@ void execPipe()
 int main()
 {
     int should_run = 1;
-    char input_initial[30];
+    
     
     flagChoose = chooseMode(input_initial);
+    
 
     while (should_run)
     {
         
+        if(should_run == 0) {
+            break;
+        }
         switch(flagChoose) {
 
             case 1:
@@ -309,6 +368,7 @@ int main()
                 runInSequential();
                 if (statusexit == 1) {
                     should_run = 0;
+                    exit(0);
                 }
                 break;
 
@@ -320,6 +380,11 @@ int main()
             case 3:
 
                 should_run = 0;
+                break;
+
+            case 4:
+
+                flagChoose = chooseMode(input_initial);
                 break;
 
             default:

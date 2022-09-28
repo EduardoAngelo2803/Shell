@@ -1,0 +1,7 @@
+ls -l
+pwd
+echo Hello!
+time
+ps
+echo TestMyShell
+ls
