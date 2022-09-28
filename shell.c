@@ -11,6 +11,7 @@
 // Global variable for store the arguments
 char *argv[MAX_ARGS / 2 + 1];
 char *auxargs[MAX_ARGS / 2 + 1];
+int verEOF = 0;
 // Global variable to store user command
 char input_user[BUFFER];
 char guideInput[BUFFER];
@@ -63,7 +64,7 @@ void get_input()
         printf("leam par> ");
     }
 
-    fgets(input_user, BUFFER, stdin);
+    verEOF = fgets(input_user, BUFFER, stdin);
 
     input_user[strlen(input_user) - 1] = '\0';
 
@@ -283,12 +284,6 @@ void runInParallel() {
 
                 separatorInput(guideInput);
                 flagH = 0;
-
-                if (i > 1)
-                {
-
-                    //i = i - 1;
-                }
             }
 
             if (strcmp("exit", input_user) == 0)
@@ -318,7 +313,7 @@ void runInParallel() {
                 }
                 countI++;
                 count = 0;
-                // Decision for no segmantation fault               
+                              
             }
 
             while(countI > 0) {
@@ -330,9 +325,7 @@ void runInParallel() {
             for (int m = 0; m < i; m++)
             {
                 argv[m] = NULL;
-            }
-
-            
+            }           
         }
     }
 }
@@ -350,14 +343,18 @@ void execPipe()
 int main()
 {
     int should_run = 1;
-    
+
     
     flagChoose = chooseMode(input_initial);
     
-
     while (should_run)
     {
-        
+        //Trying resolve 'ctrl d' to end the file
+        if(verEOF == EOF) {
+
+            should_run = 0;
+            break;
+        }
         if(should_run == 0) {
             break;
         }
