@@ -267,6 +267,45 @@ void execParalBatch() {
     exit(0);
 }
 
+void execPipeBatch(char *argBatchh[BUFFER]) {
+
+    char *delimit2 = "<;|>";
+    char *verDelim2 = strdup(argBatch[contBatch]);
+    char *separatorBatch;
+
+    separatorBatch = strtok(argBatchh[contBatch], delimit2);
+
+    if (verDelim2[separatorBatch - argBatch[contBatch] + strlen(argBatch[contBatch])] == ';')
+    {
+        flags = 1;
+    }
+    else if (verDelim2[separatorBatch - argBatch[contBatch] + strlen(argBatch[contBatch])] == '|')
+    {
+
+        flags = 2;
+    }
+    else if (verDelim2[separatorBatch - argBatch[contBatch] + strlen(argBatch[contBatch])] == '>')
+    {
+
+        flags = 3;
+    }
+    else if (verDelim2[separatorBatch - argBatch[contBatch] + strlen(argBatch[contBatch])] == '<')
+    {
+
+        flags = 4;
+    }
+
+    while (separatorBatch != NULL)
+    {
+    arguments[i] = separatorBatch;
+    removeSpaces(&arguments[i]);
+    i++;
+    separatorBatch = strtok(NULL, delimit2);
+    }
+    arguments[i] = NULL;
+    free(verDelim2);
+}
+
 void execPid() {
 
     countGlobal++;
@@ -696,6 +735,7 @@ int main(int argc, char **argv) {
 
         execParalBatch();
 
+        execPipeBatch(argBatch);
         fclose(file);
     }
 
