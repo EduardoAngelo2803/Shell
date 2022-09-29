@@ -1,7 +1,6 @@
-   ls  -l; /bin/ps;
-pwd; echo 123;
-echo     Hello!  ;
- date
-ps;
-echo TestMyShell;
-ls;
+ls -l;    ps
+   echo 123!
+date;
+         pwd; ls
+ps
+echo Hello shell!
