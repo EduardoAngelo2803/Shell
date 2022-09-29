@@ -9,24 +9,24 @@
 #define READ_END
 #define WRITE_END
 // Global variable for store the arguments
+int flags;
+pid_t pidPipe[2];
 char *argv[MAX_ARGS / 2 + 1];
 char *auxargs[MAX_ARGS / 2 + 1];
 int verEOF = 0;
 // Global variable to store user command
 char input_user[BUFFER];
 char guideInput[BUFFER];
-char *history[BUFFER];
 int countHistory = 0;
 int flagChoose;
 int flagH = 0;
 char input_initial[30];
-// Global variable for count numbers of arguments
-int argc = 0;
 int countGlobal = 0;
 int statusexit = 0;
 int countI = 0;
 int count = 0;
 int i;
+int g = 0;
 
 void checkChar(str) {
 
@@ -117,20 +117,36 @@ void separatorArgv (char *argv[BUFFER]) {
 
 void separatorInput(char input_user[BUFFER])
 {
-    // split string into argv
+    char *delimit = ";|>";
+    char *verDelim= strdup(input_user);
     char *separatorStr;
     i = 0;
-    //Parse string in to numbers of arguments
-    separatorStr = strtok(input_user, ";");
-    
+
+    separatorStr = strtok(input_user, delimit);
+
+    if (verDelim[separatorStr - input_user + strlen(input_user)] == ';')
+    {
+
+        flags = 1;
+    }
+    else if (verDelim[separatorStr - input_user + strlen(input_user)] == '|') {
+
+        flags = 2;
+
+    }else if (verDelim[separatorStr - input_user + strlen(input_user)] == '>') {
+
+        flags = 3;
+    }
+   
     while (separatorStr != NULL)
     {
         argv[i] = separatorStr;
         removeSpaces(&argv[i]);
-        i++;      
-        separatorStr = strtok(NULL, ";");
-    }
-  
+        i++;
+        separatorStr = strtok(NULL, delimit);
+        }
+
+    free(verDelim);
 }
 
 int chooseMode(char input_initial[30]) {
@@ -172,7 +188,7 @@ void execPid() {
 
     if (flagH == 0){
 
-        separatorInput(input_user);
+        //separatorInput(input_user);
 
     }else if(flagH == 1) {
 
@@ -193,7 +209,7 @@ void execPid() {
 
         separatorArgv(&argv);
 
-        if (cpid[j] < 0)
+        if (cpid[j] < 0 )
         {
             printf("Fork failed!\n");
         }
@@ -254,8 +270,16 @@ void runInSequential()
             if(strcmp("exit", input_user) == 0) {
                 exit(0);
                 break;
-            }         
-            execPid();         
+            }
+            separatorInput(input_user);
+            if(flags == 1) {
+
+                execPid();   
+
+            }else if(flags == 2) {
+
+                Pipe();
+            }  
         }
     }
 }
@@ -330,21 +354,69 @@ void runInParallel() {
 
 void execPipe()
 {
-
     char write_msg[BUFFER];
     char read_msg[BUFFER];
-    int fd[2];
-    pid_t pip1, pip2;
+
+    //separatorInput(input_user);
+    separatorArgv(&argv);
+
+    execvp(auxargs[0], auxargs);
     
+    
+}
+
+void Pipe() {
+
+    int fd[2];
+    pidPipe[g] = fork();
+   
+    if (pipe(fd) < 0)
+    {
+        printf("Error!\n");
+    }
+    else if (pidPipe[g] == 0)
+    {
+        close(fd[0]);
+        dup2(fd[1], STDOUT_FILENO);
+        execPipe();
+    }
+    for (int k = 0; k < i; k++)
+    {
+        auxargs[k] = NULL;
+    }
+    countI++;
+    count = 0;
+    g++;
+    pidPipe[g] = fork();
+
+    if (pidPipe[g] < 0)
+    {
+        printf("Error!\n");
+    }
+    else if (pidPipe[g] == 0)
+    {
+        close(fd[1]);
+        dup2(fd[0], STDIN_FILENO);
+        
+        execPipe();
+    }
+
+    close(fd[0]);
+    close(fd[1]);
+    
+    while(g >= 0) {
+
+        wait(NULL);
+        g--;
+    }
 }
 
 int main()
 {
     int should_run = 1;
-
     
     flagChoose = chooseMode(input_initial);
-    
+
     while (should_run)
     {
         //Trying resolve 'ctrl d' to end the file

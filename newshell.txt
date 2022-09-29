@@ -1,4 +1,4 @@
-   ls  -l; /bin/ps;  
+   ls  -l; /bin/ps;
 pwd; echo 123;
 echo     Hello!  ;
  date
