@@ -44,15 +44,14 @@ void get_input() {
         printf("leam par> ");
     }
 
-    verEOF = fgets(input_user, BUFFER, stdin);
+    fgets(input_user, BUFFER, stdin);
 
-    input_user[strlen(input_user) - 1] = '\0';
-
-    if(input_user == EOF) {
-
+    if (input_user == NULL)
+    {
         flagChoose = 3;
         exit(0);
     }
+    input_user[strlen(input_user) - 1] = '\0';
 
     //Coloca os comandos no array auxiliar, caso não seja pressionado !!. Pois se for
     //Ele passa direto, logo, fica salvo o ultimo input antes do '!!'.
@@ -83,7 +82,7 @@ void separatorArgv (char *argv[BUFFER]) {
     char *ptr;
     
     ptr = strtok(argv[countI], " ");
-
+    
     while(ptr != NULL) {
 
         auxargs[count] = ptr;
@@ -129,18 +128,13 @@ void separatorInput(char input_user[BUFFER]) {
 int chooseMode(char input_initial[30]) {
 
     printf("Choose mode for run Shell! style parallel or style sequential, '!!' to execute last command, and exit for endding!\n");
-    verEOF2 = fgets(input_initial, 30, stdin);
-    input_initial[strlen(input_initial) - 1] = '\0';
-    if (input_initial == EOF) {
-
-        flagChoose = 3;
-        exit(0);
-    }
+    fgets(input_initial, 30, stdin);
 
     if(input_initial == NULL) {
         flagChoose = 3;
         exit(0);
     }
+    
     if (input_initial[strlen(input_initial) - 1] == '\n') {
 
         input_initial[strlen(input_initial) - 1] = '\0';
@@ -166,23 +160,161 @@ int chooseMode(char input_initial[30]) {
     }
 }
 
+void PipeSequential() {
+
+    int fd[2];
+    pidPipe[0] = fork();
+
+    if (flagH == 1)
+    {
+        separatorInput(guideInput);
+        flagH = 0;
+    }
+    if (pidPipe < 0)
+    {
+
+        printf("Error!\n");
+    }
+    else if (pidPipe[0] == 0)
+    {
+
+        dup2(fd[1], STDOUT_FILENO);
+        close(fd[1]);
+        close(fd[0]);
+        separatorArgv(argv);
+
+        execvp(auxargs[0], auxargs);
+    }
+    else
+    {
+        wait(NULL);
+    }
+
+    for (int k = 0; k < i; k++)
+    {
+
+        auxargs[k] = NULL;
+    }
+    countI++;
+    count = 0;
+    pidPipe[1] = fork();
+
+    if (pidPipe[1] < 0)
+    {
+
+        printf("Error!\n");
+    }
+    else if (pidPipe[1] == 0)
+    {
+
+        dup2(fd[0], STDIN_FILENO);
+        separatorArgv(argv);
+        close(fd[1]);
+        execvp(auxargs[0], auxargs);
+    }
+    else
+    {
+
+        wait(NULL);
+    }
+
+    close(fd[0]);
+    close(fd[1]);
+}
+
+void PipeParallel() {
+
+    int fd[2];
+    pidPipe[0] = fork();
+
+    if (flagH == 1)
+    {
+        separatorInput(guideInput);
+        flagH = 0;
+    }
+
+    if (pidPipe < 0)
+    {
+        printf("Error!\n");
+    }
+    else if (pidPipe[0] == 0)
+    {
+
+        dup2(fd[1], STDOUT_FILENO);
+        close(fd[1]);
+        close(fd[0]);
+        separatorArgv(argv);
+        execvp(auxargs[0], auxargs);
+    }
+
+    for (int k = 0; k < i; k++)
+    {
+
+        auxargs[k] = NULL;
+    }
+    countI++;
+    count = 0;
+    pidPipe[1] = fork();
+
+    if (pidPipe[1] < 0)
+    {
+
+        printf("Error!\n");
+    }
+    else if (pidPipe[1] == 0)
+    {
+
+        dup2(fd[0], STDIN_FILENO);
+        separatorArgv(argv);
+        close(fd[1]);
+        execvp(auxargs[0], auxargs);
+    }
+
+    wait(NULL);
+    wait(NULL);
+    close(fd[0]);
+    close(fd[1]);
+}
+
+void readFile() {
+
+    FILE *file;
+
+    int fd = open("newfile.txt", O_CREAT | O_WRONLY, 0777);
+
+    separatorArgv(argv);
+
+    pid_t pid1;
+
+    pid1 = fork();
+    close(STDOUT_FILENO);
+    dup2(fd, STDOUT_FILENO);
+    close(fd);
+    if (pid1 < 0)
+    {
+
+        printf("Error!\n");
+    }
+    else if (pid1 == 0)
+    {
+
+        execvp(auxargs[0], auxargs);
+    }
+    else
+    {
+
+        wait(NULL);
+    }
+}
+
 void execPid() {
 
     countGlobal++;
 
-    if (flagH == 0){
-
-        //separatorInput(input_user);
-
-    } else if(flagH == 1) {
+    if(flagH == 1) {
 
         separatorInput(guideInput);
         flagH = 0;
-
-        if(i > 1) {
-
-            i = i - 1;
-        }
     }
 
     for (int j = 0; j < i; j++) {
@@ -190,7 +322,7 @@ void execPid() {
         pid_t cpid[i];
         cpid[j] = fork();
 
-        separatorArgv(&argv);
+        separatorArgv(argv);
 
         if (cpid[j] < 0 ) {
 
@@ -199,8 +331,8 @@ void execPid() {
         else if (cpid[j] == 0) {
 
             execvp(auxargs[0], auxargs);
-        }
-        else {
+
+        } else {
 
             printf("Command: %s\n", auxargs[0]);
             wait(NULL);
@@ -222,38 +354,31 @@ void runInSequential() {
         while(1) {
 
             get_input();
+  
+            /*for (int l = 0; l < MAX_ARGS; l++) {
 
-            if (flagH == 1) {
+                argv[l] = NULL;
+            }*/
+            memset(argv, NULL, sizeof(char) * (MAX_ARGS/2+1));
 
-                for (int l = 0; l < countI; l++) {
+            countI = 0;
 
-                    argv[l] = NULL;
-                }
-                //memset(argv, 0, MAX_ARGS / 2 + 1);
-                countI = 0;
-                execPid();
-    
-            }else if (flagH != 1) {
-                for (int l = 0; l < countI; l++)
-                {
-
-                    argv[l] = NULL;
-                }
-                countI = 0;
-            }
-
-            if(strcmp("exit", input_user) == 0) {
+            if(strcmp("exit", input_user) == 0 || input_user == NULL) {
                 exit(0);
                 break;
             }
-            separatorInput(input_user);
+
+            if(flagH == 0) {
+
+                separatorInput(input_user);
+            }
             if(flags == 1 || flags == 0) {
 
                 execPid();   
 
             }else if(flags == 2) {
 
-                Pipe();
+                PipeSequential();
 
             }else if(flags == 3) {
 
@@ -273,153 +398,76 @@ void runInParallel() {
         while (1)
         {
             get_input();
-            countGlobal++;
 
-            if (flagH == 0)
-            {
+            if(flags == 1) {
 
-                separatorInput(input_user);
-            }
-            else if (flagH == 1)
-            {
+                countGlobal++;
 
-                separatorInput(guideInput);
-                flagH = 0;
-            }
-
-            if (strcmp("exit", input_user) == 0)
-            {
-                exit(0);
-                break;
-            }
-           
-            for (j = 0; j < i; j++)
-            {             
-                cpid[j] = fork();
-
-                separatorArgv(&argv);
-
-                if (cpid[j] < 0)
+                if (flagH == 0)
                 {
-                    printf("Fork failed!\n");
+
+                    separatorInput(input_user);
                 }
-                else if (cpid[j] == 0)
+                else if (flagH == 1)
                 {
-                    execvp(auxargs[0], auxargs);
+
+                    separatorInput(guideInput);
+                    flagH = 0;
                 }
 
-                for (int k = 0; k < i; k++)
+                if (strcmp("exit", input_user) == 0)
                 {
-                    auxargs[k] = NULL;
+                    exit(0);
+                    break;
                 }
-                countI++;
-                count = 0;
-                              
+            
+                for (j = 0; j < i; j++)
+                {             
+                    cpid[j] = fork();
+
+                    separatorArgv(argv);
+
+                    if (cpid[j] < 0)
+                    {
+                        printf("Fork failed!\n");
+                    }
+                    else if (cpid[j] == 0)
+                    {
+                        execvp(auxargs[0], auxargs);
+                    }
+
+                    for (int k = 0; k < i; k++)
+                    {
+                        auxargs[k] = NULL;
+                    }
+                    countI++;
+                    count = 0;
+                                
+                }
+
+                while(countI > 0) {
+
+                    wait(NULL);
+                    countI--;
+                }
+
+                /*for (int m = 0; m < MAX_ARGS; m++)
+                {
+                    argv[m] = NULL;
+                } */
+                memset(argv, NULL, sizeof(char) * (MAX_ARGS / 2 + 1));
+
+            }else if(flags == 2) {
+
+                PipeParallel();
+
+                for (int m = 0; m < MAX_ARGS; m++) {
+
+                    argv[m] = NULL;
+                }
             }
-
-            while(countI > 0) {
-
-                wait(NULL);
-                countI--;
-            }
-
-            for (int m = 0; m < i; m++)
-            {
-                argv[m] = NULL;
-            }           
         }
     }
-}
-
-void execPipe() {
-
-    char write_msg[BUFFER];
-    char read_msg[BUFFER];
-
-    //separatorInput(input_user);
-    separatorArgv(&argv);
-
-    execvp(auxargs[0], auxargs);
-  
-}
-
-void Pipe() {
-
-    int fd[2];
-    pidPipe[0] = fork();
-   
-    if (pidPipe < 0) {
-
-        printf("Error!\n");
-
-    }else if (pidPipe[0] == 0) {
-        
-        dup2(fd[1], STDOUT_FILENO);
-        close(fd[1]);
-        close(fd[0]);
-        separatorArgv(&argv);
-
-        execvp(auxargs[0], auxargs);
-
-    }else{
-
-        wait(NULL);
-    }
-
-    for (int k = 0; k < i; k++) {
-
-        auxargs[k] = NULL;
-    }
-    countI++;
-    count = 0;
-    pidPipe[1] = fork();
-
-    if (pidPipe[1] < 0) {
-
-        printf("Error!\n");
-
-    } else if (pidPipe[1] == 0) {
-        
-        dup2(fd[0], STDIN_FILENO);
-        separatorArgv(&argv);
-        close(fd[1]);
-        execvp(auxargs[0], auxargs);
-
-    }else{
-    
-        wait(NULL);
-    }
-
-    close(fd[0]);
-    close(fd[1]);
-}
-
-void readFile() {
-
-    FILE *file;
-
-    int fd = open("newfile.txt", O_CREAT | O_WRONLY, 0777);
-
-    separatorArgv(&argv);
-
-    pid_t pid1;
-
-    pid1 = fork();
-    close(STDOUT_FILENO);   
-    dup2(fd, STDOUT_FILENO);
-    close(fd);
-    if(pid1 < 0) {
-
-        printf("Error!\n");
-
-    }else if(pid1 == 0) {
-
-        execvp(auxargs[0], auxargs);
-    
-    }else {
-
-        wait(NULL);
-    } 
 }
 
 int main()
