@@ -1,0 +1,7 @@
+/home/eduardo/Estudos/Shell
+leam seq> Ending our Shell application, GoodBye!
+
+testshell
+testshell.c
+leam seq> Ending our Shell application, GoodBye!
+application, GoodBye!
