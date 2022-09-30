@@ -8,6 +8,7 @@
 #define MAX_ARGS 80
 #define BUFFER 1024
 
+
 int flags;
 pid_t pidPipe[2];
 char *arguments[MAX_ARGS / 2 + 1];
@@ -26,7 +27,7 @@ int count = 0;
 int i = 0;
 int r = 0;
 int contBatch = 0;
-int contador = 0;
+int contadorBatch;
 
 void removeSpaces(char **str)
 {
@@ -104,38 +105,40 @@ void separatorarguments(char *argumentss[BUFFER]) {
 
 void VerPipeBatch (char *argBatchh[41]) {
 
-    char *delimit2 = ">;<|";
-    char *verDelim2 = strdup(argBatchh[contBatch]);
-    char *separatorBatch;
+    char *delimit = "<;|>";
+    char *verDelim = strdup(argBatchh[contBatch]);
+    char *separatorStr;
+    
 
-    separatorBatch = strtok(argBatchh[contBatch], delimit2);
+    separatorStr = strtok(argBatchh[contBatch], delimit);
+    flags = 0;
 
-    if (verDelim2[separatorBatch - argBatchh[contBatch] + strlen(argBatchh[contBatch])] == ';')
-      {
-          flags = 1;
-      }
-      else if (verDelim2[separatorBatch - argBatchh[contBatch] + strlen(argBatchh[contBatch])] == '|')
-      {
-          flags = 2;
-      }
-      else if (verDelim2[separatorBatch - argBatchh[contBatch] + strlen(argBatchh[contBatch])] == '>')
-      {
-          flags = 3;
-      }
-      else if (verDelim2[separatorBatch - argBatchh[contBatch] + strlen(argBatchh[contBatch])] == '<')
-      {
-          flags = 4;
-      }
+    if (verDelim[separatorStr - argBatch[contBatch] + strlen(separatorStr)] == ';') {
+        flags = 1;
+    }
+    else if (verDelim[separatorStr - argBatch[contBatch] + strlen(separatorStr)] == '|') {
+        flags = 2;
+    }else if(verDelim[separatorStr - argBatch[contBatch] + strlen(separatorStr)] == '>') {
+        flags = 3;
+        if (verDelim[separatorStr - argBatch[contBatch] + strlen(separatorStr)+1] == '>') {
+            flags = 5;
+        }
+    }else if(verDelim[separatorStr - argBatch[contBatch] + strlen(separatorStr)] == '<') {
+        flags = 4;
+    }
 
-    while (separatorBatch != NULL)
+    contadorBatch = i;
+
+    while (separatorStr != NULL)
     {
-        arguments[i] = separatorBatch;
+
+        arguments[i] = separatorStr;
         removeSpaces(&arguments[i]);
         i++;
-        separatorBatch = strtok(NULL, delimit2);
-    }
-    arguments[i] = NULL;
-    free(verDelim2);
+        separatorStr = strtok(NULL, delimit);
+        }
+        
+        free(verDelim);
 }
 
 void separgsBatch(char *argBatchh[41])
@@ -239,8 +242,8 @@ void execSeqBatch()
         count = 0;
     }
 
-    printf("Executing in Sequence done with sucess!\n");
-    printf("Executed command History: \n");
+    printf("\nExecuting in Sequence done with sucess!\n");
+    printf("\nExecuted command History: \n");
 
     for (int k = 0; k < i; k++)
     {
@@ -248,7 +251,7 @@ void execSeqBatch()
         printf("%s; ", arguments[k]);
     }
 
-    printf("\n\n");
+    printf("\n\n//////////////////////////////////////////////////////////////////////////////////////////////////////////\n");
     countI = 0;
     count = 0;
 }
@@ -575,6 +578,7 @@ void runInSequential()
 
             memset(arguments, 0, sizeof(char) * (MAX_ARGS / 2 + 1));
             countI = 0;
+         
             get_input();
             if (strcmp("style parallel", input_user) == 0)
             {
@@ -818,39 +822,74 @@ int main(int argc, char **argv)
     {
 
         file = fopen(argv[1], "r");
-
+        
         while (!feof(file) && !ferror(file))
         {
+           
             argBatch[r] = malloc(sizeof *argBatch[r] * 41);
             fgets(argBatch[r], 41, file);
             argBatch[r][strlen(argBatch[r]) - 1] = '\0';
             r++;
         }
 
-        for (int s = 0; s < r - 1; s++)
+        for (int s = 0; s < r -1; s++)
         {
 
-           separgsBatch(argBatch);
+           VerPipeBatch(argBatch);
            contBatch++;
         }
-           if (flags == 0 || flags == 1)
-           {
-
-               execSeqBatch();
-        }
-        printf("%d", flags);
+        
         printf("\nExec in Seq >\n");
-        if (flags == 2)
-        {
 
-            printf("\ncheguei");
+    
+        
+        if(flags == 0 || flags == 1) {
+
+            execSeqBatch();
+
+        }else if(flags == 2) {
+
+            PipeSequential();
         }
-        execParalBatch();
-        //execSeqBatch();
+        else if (flags == 3)
+        {
+            readFileSeq();
+        }
+        else if (flags == 4)
+        {
+            recepOut();
+        }
+        else if (flags == 5)
+        {
+            append();
+        }
+
         printf("\nExec in Parallel >\n");
 
+        if (flags == 0 || flags == 1)
+        {
+
+            execParalBatch();
+        }
+        else if (flags == 2)
+        {
+
+            PipeParallel();
+        }
+        else if (flags == 3)
+        {
+            readFileSeq();
+        }
+        else if (flags == 4)
+        {
+            recepOut();
+        }
+        else if (flags == 5)
+        {
+            append();
+        }
        
-         
+
         fclose(file);
     }
 

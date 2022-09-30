@@ -1,6 +1,7 @@
+echo 123
 ls -l;    ps
    echo 123!
 date;
          pwd; ls
 ps
-echo Hello shell!
+pwd
